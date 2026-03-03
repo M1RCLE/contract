@@ -1,0 +1,19 @@
+[package]
+name = "stellar-sac-contract"
+version = "0.1.0"
+edition = "2021"
+autobins = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = "25.1.1"
+num-derive = "0.4"
+num-traits = { version = "0.2", default-features = false }
+
+[dev-dependencies]
+soroban-sdk = { version = "25.1.1", features = ["testutils"] }
+
+[profile.release]
+overflow-checks = true
