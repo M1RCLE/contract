@@ -1,7 +1,7 @@
 # stellar-sac-contract
 ## Состав группы
-1. Ходжахов Эмиль
-2. Шиндарев Михаил
+1. Ходжахов Эмиль - GDL3XDTLQWUBTLWGWFTTQFRQMBBV4NO2FI2FSYX7HWKYOHTSYK5BGYKK
+2. Шиндарев Михаил - GBVQMFXXNOZFBARCPUEIJF5UFDW4EIBMWYBUJ7INU6B23NSUBUEXBNVY
 3. Оншин Дмитрий
 
 ## Сеть
