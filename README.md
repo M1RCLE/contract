@@ -7,5 +7,11 @@
 ## Сеть
 Stellar Testnet
 
-## Контракт
-https://lab.stellar.org/smart-contracts/contract-explorer?$=network$id=testnet&label=Testnet&horizonUrl=https:////horizon-testnet.stellar.org&rpcUrl=https:////soroban-testnet.stellar.org&passphrase=Test%20SDF%20Network%20/;%20September%202015;&smartContracts$explorer$contractId=CBYLN5ZY767BGKR6A3N6UITBDP56YHYRJ3YSOMCPICZNETYMPJHKQ42Z;
+## Токен
+https://lab.stellar.org/r/testnet/contract/CCECJKPMU2DCVVNIUWVYYS4F3WETD7B6ABTJG7OVYEYEOJ4JI7KZ7FPZ
+contract address: CCECJKPMU2DCVVNIUWVYYS4F3WETD7B6ABTJG7OVYEYEOJ4JI7KZ7FPZ
+
+## Пул
+USDC: CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA
+https://lab.stellar.org/r/testnet/contract/CDGGKE6AXV6BUGN5HSQKTUDVM6MMEHJSPGUYFL6VOVI6J54YDON6ESYU
+contract address: CDGGKE6AXV6BUGN5HSQKTUDVM6MMEHJSPGUYFL6VOVI6J54YDON6ESYU
