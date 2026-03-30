@@ -1,0 +1,5 @@
+{
+	"dependencies": {
+		"liquidity_pool": "file:packages/liquidity_pool"
+	}
+}
