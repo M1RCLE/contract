@@ -1,260 +1,1252 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LIQD — EDM/USDC Pool</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/src/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDM / USDC · AMM Pool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@stellar/stellar-sdk/dist/stellar-sdk.min.js"></script>
+<script src="https://unpkg.com/@stellar/freighter-api/dist/index.min.js"></script>
+<style>
+:root {
+  --bg:       #070709;
+  --bg1:      #0e0e12;
+  --bg2:      #141418;
+  --border:   #252530;
+  --border2:  #333345;
+  --text:     #d8d8e8;
+  --muted:    #6a6a88;
+  --edm:      #7cfc6e;   /* neon green — EDM */
+  --usdc:     #2775ca;   /* USDC blue */
+  --usdc-lt:  #5ba4f5;
+  --orange:   #ff7c38;
+  --red:      #ff4a6e;
+  --white:    #f0f0f8;
+  --mono:     'JetBrains Mono', monospace;
+  --ui:       'Chakra Petch', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--ui);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  background-image:
+    linear-gradient(rgba(124,252,110,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,252,110,.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center center;
+}
+
+/* ─── LAYOUT ─── */
+.shell {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+/* ─── HEADER ─── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 36px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.logo-main {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--white);
+}
+.logo-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.badge-net {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  padding: 3px 8px;
+  background: rgba(255,124,56,.12);
+  border: 1px solid rgba(255,124,56,.4);
+  color: var(--orange);
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+/* ─── WALLET BAR ─── */
+.wallet-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#wallet-info {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  display: none;
+}
+#wallet-info.show { display: flex; align-items: center; gap: 6px; }
+#wallet-info .dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--edm);
+  box-shadow: 0 0 6px var(--edm);
+  flex-shrink: 0;
+}
+#wallet-name {
+  color: var(--edm);
+  font-weight: 700;
+}
+
+/* ─── BUTTONS ─── */
+.btn {
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  padding: 9px 18px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  transition: all .18s;
+  text-transform: uppercase;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary {
+  background: var(--edm);
+  color: #061206;
+}
+.btn-primary:not(:disabled):hover {
+  background: #9fff94;
+  box-shadow: 0 0 18px rgba(124,252,110,.45);
+}
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text);
+}
+.btn-secondary:not(:disabled):hover {
+  border-color: var(--edm);
+  color: var(--edm);
+}
+.btn-danger {
+  background: transparent;
+  border: 1px solid rgba(255,74,110,.4);
+  color: var(--red);
+}
+.btn-danger:not(:disabled):hover {
+  background: rgba(255,74,110,.1);
+}
+.btn-full { width: 100%; padding: 13px; font-size: 14px; }
+
+/* ─── GRID ─── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+/* ─── CARDS ─── */
+.card {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+.card-title {
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+
+/* ─── RESERVES CARD ─── */
+.reserves-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.reserves-row:last-child { border-bottom: none; }
+.reserve-token {
+  display: flex; align-items: center; gap: 10px;
+}
+.tok-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tok-dot.edm { background: var(--edm); box-shadow: 0 0 6px var(--edm); }
+.tok-dot.usdc { background: var(--usdc-lt); box-shadow: 0 0 6px var(--usdc-lt); }
+.tok-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--white);
+}
+.tok-addr {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+.reserve-amount {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--white);
+}
+.reserve-amount span {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.shares-row {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--bg2);
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.shares-label { font-size: 12px; color: var(--muted); }
+.shares-value { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--edm); }
+
+/* ─── TABS ─── */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px;
+  margin-bottom: 16px;
+}
+.tab-btn {
+  flex: 1;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 9px 0;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted);
+  transition: all .18s;
+}
+.tab-btn.active {
+  background: var(--bg2);
+  color: var(--white);
+  border: 1px solid var(--border2);
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+.tab-btn:not(.active):hover { color: var(--text); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ─── FORM ELEMENTS ─── */
+.field { margin-bottom: 14px; }
+.field-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+  font-weight: 600;
+}
+.field-label .hint {
+  font-family: var(--mono);
+  letter-spacing: .04em;
+  color: var(--border2);
+  text-transform: none;
+}
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-wrap .suffix {
+  position: absolute;
+  right: 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
+}
+.suffix.edm { color: var(--edm); }
+.suffix.usdc { color: var(--usdc-lt); }
+.suffix.sh { color: var(--orange); }
+input[type="number"], input[type="text"], select {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 11px 14px;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--white);
+  outline: none;
+  transition: border-color .18s;
+  appearance: none;
+}
+input[type="number"]:focus, input[type="text"]:focus, select:focus {
+  border-color: var(--edm);
+}
+.input-wrap input { padding-right: 56px; }
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236a6a88' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+select option { background: #18181e; }
+
+/* ─── DIVIDER ─── */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* ─── INFO BOX ─── */
+.info-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+}
+.info-key { font-size: 12px; color: var(--muted); }
+.info-val { font-family: var(--mono); font-size: 13px; color: var(--white); }
+.info-val.green { color: var(--edm); }
+.info-val.orange { color: var(--orange); }
+
+/* ─── NOTICE ─── */
+.notice {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border-left: 3px solid var(--border2);
+  border-radius: 0 5px 5px 0;
+  margin-bottom: 14px;
+}
+
+/* ─── TX LOG ─── */
+#tx-log {
+  margin-top: 28px;
+  display: none;
+}
+#tx-log.show { display: block; }
+.log-title {
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+.log-entry {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--muted);
+  border-left: 2px solid var(--border);
+  padding-left: 12px;
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+.log-entry.success { border-color: var(--edm); color: var(--edm); }
+.log-entry.error   { border-color: var(--red); color: var(--red); }
+.log-entry.pending { border-color: var(--orange); color: var(--orange); }
+.log-entry a { color: inherit; text-decoration: underline; opacity: .7; }
+.log-entry a:hover { opacity: 1; }
+
+/* ─── SPINNER ─── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(124,252,110,.2);
+  border-top-color: var(--edm);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+/* ─── WALLETS CARD ─── */
+.wallets-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wallet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: border-color .15s;
+}
+.wallet-row.me {
+  border-color: rgba(124,252,110,.35);
+  background: rgba(124,252,110,.04);
+}
+.wallet-person { font-size: 13px; font-weight: 600; color: var(--white); }
+.wallet-addr {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+.wallet-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  background: rgba(124,252,110,.12);
+  color: var(--edm);
+  border: 1px solid rgba(124,252,110,.3);
+}
+
+/* ─── ANIMATE FADE ─── */
+@keyframes fadeUp {
+  from { opacity:0; transform: translateY(10px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+.card { animation: fadeUp .3s ease both; }
+.card:nth-child(1) { animation-delay: .05s; }
+.card:nth-child(2) { animation-delay: .1s; }
+</style>
 </head>
 <body>
-<div class="orb o1"></div>
-<div class="orb o2"></div>
+<div class="shell">
 
-<!-- HEADER -->
-<header>
-  <div class="logo"><div class="dot"></div>LIQD</div>
-  <div class="hr">
-    <div class="bdg bdg-f">fee 0.3%</div>
-    <div class="bdg bdg-n">TESTNET</div>
-    <button class="btn btn-p" id="connectBtn">Connect LOBSTR</button>
-  </div>
-</header>
-
-<div class="wrap">
-
-  <!-- NOTICE -->
-  <div class="notice" id="lobstrNotice">
-    ⚠ Требуется <a href="https://lobstr.co/signer-extension/" target="_blank">LOBSTR Signer Extension</a>.
-    Установи расширение → привяжи мобильное приложение → нажми Connect.
-  </div>
-
-  <!-- WALLET BAR -->
-  <div class="wbar" id="walletBar">
-    <div class="wbar-left">
-      <div class="wbar-label">Активный кошелёк</div>
-      <div class="wpills">
-        <div class="wpill on" id="pill0" data-idx="0">
-          <span class="wn">Ходжахов Эмиль</span>
-          <span class="wa">GDL3…BGYKK</span>
-        </div>
-        <div class="wpill" id="pill1" data-idx="1">
-          <span class="wn">Шиндарев Михаил</span>
-          <span class="wa">GBVQ…BNVY</span>
-        </div>
+  <!-- ─── HEADER ─── -->
+  <header>
+    <div class="logo">
+      <span class="logo-main">EDM / USDC</span>
+      <span class="logo-sub">AMM · 0.3% fee</span>
+      <span class="badge-net">Testnet</span>
+    </div>
+    <div class="wallet-bar">
+      <div id="wallet-info">
+        <div class="dot"></div>
+        <span id="wallet-name">—</span>
+        <span id="wallet-addr-short">—</span>
       </div>
+      <button class="btn btn-secondary" id="connect-btn" onclick="connectWallet()">Connect Freighter</button>
+      <button class="btn btn-secondary" id="refresh-btn" onclick="loadPoolData()" title="Refresh pool data">⟳</button>
     </div>
-    <div class="wr">
-      <div class="waddr" id="waddr"></div>
-      <button class="btn btn-g" id="refreshBtn">↻ Обновить</button>
-      <button class="btn btn-d" id="disconnectBtn">Выход</button>
-    </div>
-  </div>
+  </header>
 
-  <!-- TOKEN CARDS -->
-  <div class="trow">
-    <div class="tc">
-      <div class="tlbl">Token A · Pool</div>
-      <div class="tsym a">USDC</div>
-      <div class="trole">USD Coin (testnet)</div>
-      <div class="tid">CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA</div>
-    </div>
-    <div class="tc">
-      <div class="tlbl">Token B · Pool</div>
-      <div class="tsym b">EDMT</div>
-      <div class="trole">EDM Token (твой)</div>
-      <div class="tid">CCECJKPMU2DCVVNIUWVYYS4F3WETD7B6ABTJG7OVYEYEOJ4JI7KZ7FPZ</div>
-    </div>
-    <div class="tc">
-      <div class="tlbl">AMM Contract</div>
-      <div class="tsym c" style="font-size:14px;margin-top:2px">LiqPool</div>
-      <div class="trole">Constant Product x·y=k</div>
-      <div class="tid">CDGGKE6AXV6BUGN5HSQKTUDVM6MMEHJSPGUYFL6VOVI6J54YDON6ESYU</div>
-    </div>
-  </div>
+  <!-- ─── TOP GRID: Reserves + Participants ─── -->
+  <div class="grid-2" style="margin-bottom: 16px;">
 
-  <!-- STATS -->
-  <div class="srow">
-    <div class="sc">
-      <div class="slbl">Reserve A (USDC)</div>
-      <div class="sval a" id="sA">—</div>
-      <div class="ssub" id="sAsub"></div>
-    </div>
-    <div class="sc">
-      <div class="slbl">Reserve B (EDMT)</div>
-      <div class="sval b" id="sB">—</div>
-      <div class="ssub" id="sBsub"></div>
-    </div>
-    <div class="sc">
-      <div class="slbl">Your LP Shares</div>
-      <div class="sval s" id="sS">—</div>
-      <div class="ssub" id="sSsub"></div>
-    </div>
-  </div>
-
-  <!-- TABS -->
-  <div class="tabs">
-    <button class="tab on" data-panel="swap">Swap</button>
-    <button class="tab" data-panel="dep">Deposit</button>
-    <button class="tab" data-panel="wd">Withdraw</button>
-    <button class="tab" data-panel="info">Info</button>
-  </div>
-
-  <!-- ═══ SWAP ═══ -->
-  <div class="panel on" id="panel-swap">
+    <!-- Reserves -->
     <div class="card">
-      <div class="ctitle">Swap · 0.3% fee</div>
-      <div class="fg">
-        <label>Направление</label>
-        <select id="swapDir">
-          <option value="BtoA">EDMT → USDC &nbsp;(buy_a = true)</option>
-          <option value="AtoB">USDC → EDMT &nbsp;(buy_a = false)</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label>Получаю (out) <span class="tb tba" id="outBadge">USDC</span></label>
-        <div class="iw">
-          <input type="number" id="swapOut" placeholder="0.000000" min="0" step="0.000001">
-          <span class="itag" id="outTag">USDC</span>
+      <div class="card-title">Pool Reserves</div>
+      <div class="reserves-row">
+        <div class="reserve-token">
+          <div class="tok-dot usdc"></div>
+          <div>
+            <div class="tok-name">USDC</div>
+            <div class="tok-addr" title="CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA">CBIELT…XQDAMA</div>
+          </div>
         </div>
+        <div class="reserve-amount" id="reserve-usdc">—<span>USDC</span></div>
       </div>
-      <div class="sarr">⇅</div>
-      <div class="fg">
-        <label>Плачу максимум (in_max) <span class="tb tbb" id="inBadge">EDMT</span></label>
-        <div class="iw">
-          <input type="number" id="swapInMax" placeholder="0.000000" min="0" step="0.000001">
-          <span class="itag" id="inTag">EDMT</span>
+      <div class="reserves-row">
+        <div class="reserve-token">
+          <div class="tok-dot edm"></div>
+          <div>
+            <div class="tok-name">EDMT</div>
+            <div class="tok-addr" title="CCECJKPMU2DCVVNIUWVYYS4F3WETD7B6ABTJG7OVYEYEOJ4JI7KZ7FPZ">CCECJK…Z7FPZ</div>
+          </div>
         </div>
+        <div class="reserve-amount" id="reserve-edm">—<span>EDMT</span></div>
       </div>
-      <div class="est on" id="swapEst">
-        <div class="er"><span class="ek">Estimated sell</span><span class="ev" id="estSell">—</span></div>
-        <div class="er"><span class="ek">Effective price</span><span class="ev" id="estPrice">—</span></div>
-        <div class="er"><span class="ek">Price impact</span><span class="ev" id="estImpact">—</span></div>
-        <div class="er"><span class="ek">Formula</span><span class="ev" style="color:var(--txt3)">sell = ⌊(R_sell·out·1000) / ((R_buy−out)·997)⌋ + 1</span></div>
+      <div class="shares-row">
+        <span class="shares-label">Your LP shares</span>
+        <span class="shares-value" id="my-shares">—</span>
       </div>
-      <div class="fg">
-        <label>Получатель (to)</label>
-        <input type="text" id="swapTo" placeholder="G…">
-      </div>
-      <button class="btn btn-p btn-w" id="swapBtn">Execute Swap</button>
-      <div class="res info on" id="swapRes">Выбери направление и введи сумму — появится расчёт.</div>
     </div>
+
+    <!-- Wallets -->
+    <div class="card">
+      <div class="card-title">Participants</div>
+      <div class="wallets-grid">
+        <div class="wallet-row" id="wrow-0">
+          <div>
+            <div class="wallet-person">Ходжахов Эмиль</div>
+            <div class="wallet-addr">GDL3XD…BGYKK</div>
+          </div>
+        </div>
+        <div class="wallet-row" id="wrow-1">
+          <div>
+            <div class="wallet-person">Шиндарев Михаил</div>
+            <div class="wallet-addr">GBVQMF…BNVY</div>
+          </div>
+        </div>
+        <div class="wallet-row" id="wrow-2">
+          <div>
+            <div class="wallet-person">Оншин Дмитрий</div>
+            <div class="wallet-addr">GBY6KX…CPHS</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- ═══ DEPOSIT ═══ -->
-  <div class="panel" id="panel-dep">
-    <div class="card">
-      <div class="ctitle">Add Liquidity</div>
-      <div class="fg">
-        <label>Получатель LP (to)</label>
-        <input type="text" id="depTo" placeholder="G…">
-      </div>
-      <div class="two">
-        <div class="fg">
-          <label>Desired A <span class="tb tba">USDC</span></label>
-          <div class="iw"><input type="number" id="depDA" placeholder="10.000000" min="0" step="0.000001"><span class="itag">USDC</span></div>
-        </div>
-        <div class="fg">
-          <label>Min A <span class="tb tba">USDC</span></label>
-          <div class="iw"><input type="number" id="depMinA" placeholder="9.500000" min="0" step="0.000001"><span class="itag">USDC</span></div>
-        </div>
-      </div>
-      <div class="two">
-        <div class="fg">
-          <label>Desired B <span class="tb tbb">EDMT</span></label>
-          <div class="iw"><input type="number" id="depDB" placeholder="10.000000" min="0" step="0.000001"><span class="itag">EDMT</span></div>
-        </div>
-        <div class="fg">
-          <label>Min B <span class="tb tbb">EDMT</span></label>
-          <div class="iw"><input type="number" id="depMinB" placeholder="9.500000" min="0" step="0.000001"><span class="itag">EDMT</span></div>
-        </div>
-      </div>
-      <div class="est" id="depEst">
-        <div class="er"><span class="ek">Actual A deposit</span><span class="ev a" id="dEstA">—</span></div>
-        <div class="er"><span class="ek">Actual B deposit</span><span class="ev b" id="dEstB">—</span></div>
-        <div class="er"><span class="ek">Pool price</span><span class="ev" id="dEstR">—</span></div>
-      </div>
-      <button class="btn btn-p btn-w" id="depBtn">Deposit Liquidity</button>
-      <div class="res" id="depRes"></div>
+  <!-- ─── ACTION PANEL ─── -->
+  <div class="card" style="animation-delay:.15s;">
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('deposit',this)">Deposit</button>
+      <button class="tab-btn" onclick="switchTab('swap',this)">Swap</button>
+      <button class="tab-btn" onclick="switchTab('withdraw',this)">Withdraw</button>
     </div>
+
+    <!-- ══ DEPOSIT ══ -->
+    <div id="tab-deposit" class="tab-panel active">
+      <div class="notice">
+        Provide liquidity to the pool. Both tokens are transferred in the correct ratio.
+        You receive LP shares proportional to your contribution.
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="field">
+            <div class="field-label">USDC Amount</div>
+            <div class="input-wrap">
+              <input type="number" id="dep-usdc" placeholder="0.000000" min="0" step="0.000001" oninput="updateDepositPreview()">
+              <span class="suffix usdc">USDC</span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">USDC Minimum <span class="hint">(slippage)</span></div>
+            <div class="input-wrap">
+              <input type="number" id="dep-min-usdc" placeholder="0.000000" min="0" step="0.000001">
+              <span class="suffix usdc">USDC</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="field">
+            <div class="field-label">EDMT Amount</div>
+            <div class="input-wrap">
+              <input type="number" id="dep-edm" placeholder="0.000000" min="0" step="0.000001" oninput="updateDepositPreview()">
+              <span class="suffix edm">EDMT</span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">EDMT Minimum <span class="hint">(slippage)</span></div>
+            <div class="input-wrap">
+              <input type="number" id="dep-min-edm" placeholder="0.000000" min="0" step="0.000001">
+              <span class="suffix edm">EDMT</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-box" id="dep-preview" style="display:none;">
+        <div class="info-row"><span class="info-key">Effective ratio</span><span class="info-val" id="dep-ratio">—</span></div>
+        <div class="info-row"><span class="info-key">Estimated shares</span><span class="info-val green" id="dep-est-shares">—</span></div>
+      </div>
+      <button class="btn btn-primary btn-full" id="dep-btn" onclick="doDeposit()" disabled>
+        Connect wallet first
+      </button>
+    </div>
+
+    <!-- ══ SWAP ══ -->
+    <div id="tab-swap" class="tab-panel">
+      <div class="notice">
+        Specify <strong>how much you want to receive</strong> and the max you'll pay.
+        The AMM uses constant product formula (x·y=k) with 0.3% fee.
+      </div>
+
+      <div class="field">
+        <div class="field-label">You want to receive</div>
+        <div style="display:flex; gap:10px; align-items:flex-start;">
+          <div class="input-wrap" style="flex:1;">
+            <input type="number" id="swap-out" placeholder="0.000000" min="0" step="0.000001" oninput="updateSwapPreview()">
+          </div>
+          <select id="swap-buy" onchange="updateSwapSuffix(); updateSwapPreview()" style="width:120px;">
+            <option value="true">USDC</option>
+            <option value="false">EDMT</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Max you will pay <span class="hint">(in_max)</span></div>
+        <div class="input-wrap">
+          <input type="number" id="swap-in-max" placeholder="0.000000" min="0" step="0.000001">
+          <span class="suffix" id="swap-pay-suffix">EDMT</span>
+        </div>
+      </div>
+
+      <div class="info-box" id="swap-preview" style="display:none;">
+        <div class="info-row"><span class="info-key">Estimated cost</span><span class="info-val orange" id="sw-est-cost">—</span></div>
+        <div class="info-row"><span class="info-key">Price impact</span><span class="info-val" id="sw-impact">—</span></div>
+        <div class="info-row"><span class="info-key">Effective price</span><span class="info-val" id="sw-eff-price">—</span></div>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="swap-btn" onclick="doSwap()" disabled>
+        Connect wallet first
+      </button>
+    </div>
+
+    <!-- ══ WITHDRAW ══ -->
+    <div id="tab-withdraw" class="tab-panel">
+      <div class="notice">
+        Burn your LP shares to receive the underlying tokens proportionally.
+      </div>
+
+      <div class="field">
+        <div class="field-label">LP Shares to burn <span class="hint" id="withdraw-max-hint"></span></div>
+        <div class="input-wrap">
+          <input type="number" id="wd-shares" placeholder="0.000000" min="0" step="0.000001" oninput="updateWithdrawPreview()">
+          <span class="suffix sh">SHARES</span>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <button class="btn btn-secondary" style="font-size:11px;padding:5px 12px;" onclick="setWithdrawPct(0.25)">25%</button>
+        <button class="btn btn-secondary" style="font-size:11px;padding:5px 12px;" onclick="setWithdrawPct(0.50)">50%</button>
+        <button class="btn btn-secondary" style="font-size:11px;padding:5px 12px;" onclick="setWithdrawPct(0.75)">75%</button>
+        <button class="btn btn-secondary" style="font-size:11px;padding:5px 12px;" onclick="setWithdrawPct(1)">MAX</button>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <div class="field-label">Min USDC out</div>
+          <div class="input-wrap">
+            <input type="number" id="wd-min-usdc" placeholder="0.000000" min="0" step="0.000001">
+            <span class="suffix usdc">USDC</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Min EDMT out</div>
+          <div class="input-wrap">
+            <input type="number" id="wd-min-edm" placeholder="0.000000" min="0" step="0.000001">
+            <span class="suffix edm">EDMT</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box" id="wd-preview" style="display:none;">
+        <div class="info-row"><span class="info-key">Estimated USDC received</span><span class="info-val" id="wd-est-usdc">—</span></div>
+        <div class="info-row"><span class="info-key">Estimated EDMT received</span><span class="info-val green" id="wd-est-edm">—</span></div>
+        <div class="info-row"><span class="info-key">Pool share burned</span><span class="info-val" id="wd-pct">—</span></div>
+      </div>
+
+      <button class="btn btn-danger btn-full" id="wd-btn" onclick="doWithdraw()" disabled>
+        Connect wallet first
+      </button>
+    </div>
+
+  </div><!-- /card -->
+
+  <!-- ─── TX LOG ─── -->
+  <div id="tx-log">
+    <div class="log-title">Transaction Log</div>
+    <div id="log-entries"></div>
   </div>
 
-  <!-- ═══ WITHDRAW ═══ -->
-  <div class="panel" id="panel-wd">
-    <div class="card">
-      <div class="ctitle">Remove Liquidity</div>
-      <div class="fg">
-        <label>Получатель (to)</label>
-        <input type="text" id="wdTo" placeholder="G…">
-      </div>
-      <div class="fg">
-        <label>LP Shares to burn</label>
-        <div class="iw"><input type="number" id="wdShare" placeholder="0.000000" min="0" step="0.000001"><span class="itag">shares</span></div>
-      </div>
-      <div class="est" id="wdEst">
-        <div class="er"><span class="ek">Est. USDC out</span><span class="ev a" id="wEstA">—</span></div>
-        <div class="er"><span class="ek">Est. EDMT out</span><span class="ev b" id="wEstB">—</span></div>
-        <div class="er"><span class="ek">Your pool share</span><span class="ev" id="wEstP">—</span></div>
-      </div>
-      <div class="two">
-        <div class="fg">
-          <label>Min A out <span class="tb tba">USDC</span></label>
-          <input type="number" id="wdMinA" placeholder="0.000000" min="0" step="0.000001">
-        </div>
-        <div class="fg">
-          <label>Min B out <span class="tb tbb">EDMT</span></label>
-          <input type="number" id="wdMinB" placeholder="0.000000" min="0" step="0.000001">
-        </div>
-      </div>
-      <button class="btn btn-p btn-w" id="wdBtn">Withdraw</button>
-      <div class="res" id="wdRes"></div>
-    </div>
-  </div>
+</div><!-- /shell -->
 
-  <!-- ═══ INFO ═══ -->
-  <div class="panel" id="panel-info">
-    <div class="card">
-      <div class="ctitle">Contract Details</div>
-      <div class="irow"><span class="ik">AMM type</span><span class="iv">Constant Product (x·y=k)</span></div>
-      <div class="irow"><span class="ik">Swap fee</span><span class="iv">0.3% — коэффициент 997/1000</span></div>
-      <div class="irow"><span class="ik">Token A</span><span class="iv">USDC · CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA</span></div>
-      <div class="irow"><span class="ik">Token B</span><span class="iv">EDMT · CCECJKPMU2DCVVNIUWVYYS4F3WETD7B6ABTJG7OVYEYEOJ4JI7KZ7FPZ</span></div>
-      <div class="irow"><span class="ik">Contract</span><span class="iv">CDGGKE6AXV6BUGN5HSQKTUDVM6MMEHJSPGUYFL6VOVI6J54YDON6ESYU</span></div>
-      <div class="irow"><span class="ik">Network</span><span class="iv">Testnet · soroban-testnet.stellar.org</span></div>
-      <div class="irow"><span class="ik">Decimals</span><span class="iv">6 (оба токена)</span></div>
-    </div>
-    <div class="card">
-      <div class="ctitle">Check Shares</div>
-      <div class="fg">
-        <label>Адрес</label>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="infoUser" placeholder="G…" style="flex:1">
-          <button class="btn btn-g" id="checkSharesBtn">Query</button>
-        </div>
-      </div>
-      <div class="res info on" id="infoRes">Введи адрес и нажми Query.</div>
-    </div>
-    <div class="card">
-      <div class="ctitle">Swap Formula (из pool.rs)</div>
-      <div class="formula">
-        <div class="fc">// buy_a=true  → платишь EDMT, получаешь USDC</div>
-        <div class="fc">// buy_a=false → платишь USDC, получаешь EDMT</div>
-        <div style="margin-top:6px">n = reserve_sell × out × 1000</div>
-        <div>d = (reserve_buy − out) × 997</div>
-        <div class="fh">sell_amount = ⌊n / d⌋ + 1</div>
-        <div class="fc" style="margin-top:8px">// invariant check: new_k ≥ old_k</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="ctitle">Wallets</div>
-      <div class="irow"><span class="ik">Ходжахов Эмиль</span><span class="iv">GDL3XDTLQWUBTLWGWFTTQFRQMBBV4NO2FI2FSYX7HWKYOHTSYK5BGYKK</span></div>
-      <div class="irow"><span class="ik">Шиндарев Михаил</span><span class="iv">GBVQMFXXNOZFBARCPUEIJF5UFDW4EIBMWYBUJ7INU6B23NSUBUEXBNVY</span></div>
-    </div>
-  </div>
+<script>
+// ─────────────────────────────────────────────
+//  CONSTANTS
+// ─────────────────────────────────────────────
+const NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
+const RPC_URL            = 'https://soroban-testnet.stellar.org';
+const HORIZON_URL        = 'https://horizon-testnet.stellar.org';
+const CONTRACT_ID        = 'CDGGKE6AXV6BUGN5HSQKTUDVM6MMEHJSPGUYFL6VOVI6J54YDON6ESYU';
+const TOKEN_USDC         = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA'; // token_a
+const TOKEN_EDM          = 'CCECJKPMU2DCVVNIUWVYYS4F3WETD7B6ABTJG7OVYEYEOJ4JI7KZ7FPZ'; // token_b
+const DECIMALS           = 6;
+const SCALE              = 1_000_000n;
 
-</div><!-- /wrap -->
+const WALLETS = [
+  { name: 'Ходжахов Эмиль',   pk: 'GDL3XDTLQWUBTLWGWFTTQFRQMBBV4NO2FI2FSYX7HWKYOHTSYK5BGYKK' },
+  { name: 'Шиндарев Михаил',  pk: 'GBVQMFXXNOZFBARCPUEIJF5UFDW4EIBMWYBUJ7INU6B23NSUBUEXBNVY' },
+  { name: 'Оншин Дмитрий',    pk: 'GBY6KXRM62TQJBE7U7F433E73U236FABPP235M6HTYOVFHTQIBW6CPHS' },
+];
 
-<script type="module" src="/src/main.js"></script>
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+let connectedPK = null;
+let reserveA = 0n;  // USDC
+let reserveB = 0n;  // EDM
+let totalShares = 0n;
+let myShares = 0n;
+
+// ─────────────────────────────────────────────
+//  SDK helpers
+// ─────────────────────────────────────────────
+function getSDK() {
+  if (typeof StellarSdk !== 'undefined') return StellarSdk;
+  if (typeof Stellar   !== 'undefined') return Stellar;
+  throw new Error('Stellar SDK not loaded');
+}
+
+function getRpcServer() {
+  const SDK = getSDK();
+  // v12 uses rpc.Server, v11 uses SorobanRpc.Server
+  const ServerClass = SDK?.rpc?.Server ?? SDK?.SorobanRpc?.Server;
+  if (!ServerClass) throw new Error('SorobanRpc.Server not found in SDK');
+  return new ServerClass(RPC_URL, { allowHttp: false });
+}
+
+function toScVal(value, type) {
+  const SDK = getSDK();
+  return SDK.nativeToScVal(value, { type });
+}
+
+function i128ToScVal(bigintVal) {
+  const SDK = getSDK();
+  // Ensure positive; contract uses i128 but amounts are positive
+  const v = BigInt(bigintVal);
+  return SDK.nativeToScVal(v, { type: 'i128' });
+}
+
+function addrToScVal(address) {
+  const SDK = getSDK();
+  return new SDK.Address(address).toScVal();
+}
+
+function boolToScVal(b) {
+  const SDK = getSDK();
+  return SDK.xdr.ScVal.scvBool(b);
+}
+
+// Parse returned ScVal tuple (get_rsrvs returns (i128, i128))
+function parseI128(scVal) {
+  const SDK = getSDK();
+  try {
+    const n = SDK.scValToNative(scVal);
+    return BigInt(n);
+  } catch {
+    return 0n;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  WALLET
+// ─────────────────────────────────────────────
+async function getFreighterAPI() {
+  // Try multiple possible global names
+  const api = window.freighterApi ?? window.freighter;
+  if (!api) throw new Error('Freighter wallet extension not found.\nPlease install Freighter from https://freighter.app');
+  return api;
+}
+
+async function connectWallet() {
+  try {
+    const api = await getFreighterAPI();
+
+    const connected = await api.isConnected?.();
+    if (connected === false) throw new Error('Freighter is not connected');
+
+    // getPublicKey or getAddress depending on version
+    let pk;
+    if (api.getAddress) {
+      const res = await api.getAddress();
+      pk = res?.address ?? res;
+    } else {
+      pk = await api.getPublicKey();
+    }
+
+    if (!pk) throw new Error('Could not get public key from Freighter');
+    connectedPK = pk;
+
+    // Identify
+    const known = WALLETS.find(w => w.pk === pk);
+    const shortAddr = pk.slice(0,6) + '…' + pk.slice(-4);
+
+    document.getElementById('wallet-info').classList.add('show');
+    document.getElementById('wallet-name').textContent = known ? known.name : 'Unknown wallet';
+    document.getElementById('wallet-addr-short').textContent = shortAddr;
+    document.getElementById('connect-btn').textContent = 'Connected ✓';
+    document.getElementById('connect-btn').disabled = true;
+
+    // Highlight in participants list
+    WALLETS.forEach((w, i) => {
+      const row = document.getElementById('wrow-' + i);
+      if (w.pk === pk) {
+        row.classList.add('me');
+        row.innerHTML += '<span class="wallet-tag">You</span>';
+      }
+    });
+
+    enableButtons();
+    await loadPoolData();
+  } catch(e) {
+    logEntry('error', '⚠ ' + e.message);
+  }
+}
+
+function enableButtons() {
+  ['dep-btn','swap-btn','wd-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    btn.disabled = false;
+    if (id === 'dep-btn')  btn.textContent = 'Deposit Liquidity';
+    if (id === 'swap-btn') btn.textContent = 'Execute Swap';
+    if (id === 'wd-btn')   btn.textContent = 'Withdraw Liquidity';
+  });
+}
+
+// ─────────────────────────────────────────────
+//  POOL DATA
+// ─────────────────────────────────────────────
+async function loadPoolData() {
+  try {
+    document.getElementById('reserve-usdc').innerHTML = '<span class="spinner"></span>';
+    document.getElementById('reserve-edm').innerHTML  = '<span class="spinner"></span>';
+
+    const SDK = getSDK();
+    const server = getRpcServer();
+    const contract = new SDK.Contract(CONTRACT_ID);
+
+    // Use a dummy account for simulation reads
+    const simAccountPK = connectedPK ?? WALLETS[0].pk;
+    const account = await server.getAccount(simAccountPK);
+
+    // ── get_rsrvs ──
+    const rsvTx = new SDK.TransactionBuilder(account, {
+      fee: '10000',
+      networkPassphrase: NETWORK_PASSPHRASE,
+    }).addOperation(contract.call('get_rsrvs')).setTimeout(30).build();
+
+    const rsvSim = await server.simulateTransaction(rsvTx);
+    if (rsvSim.result?.retval) {
+      const retval = rsvSim.result.retval;
+      const native = SDK.scValToNative(retval);
+      // returns tuple [i128, i128] → [reserveA, reserveB]
+      if (Array.isArray(native) && native.length >= 2) {
+        reserveA = BigInt(native[0]);
+        reserveB = BigInt(native[1]);
+      }
+    }
+
+    document.getElementById('reserve-usdc').innerHTML = fmt6(reserveA) + '<span>USDC</span>';
+    document.getElementById('reserve-edm').innerHTML  = fmt6(reserveB) + '<span>EDMT</span>';
+
+    // ── balance_shares ──
+    if (connectedPK) {
+      const account2 = await server.getAccount(connectedPK);
+      const shTx = new SDK.TransactionBuilder(account2, {
+        fee: '10000',
+        networkPassphrase: NETWORK_PASSPHRASE,
+      }).addOperation(
+        contract.call('balance_shares', addrToScVal(connectedPK))
+      ).setTimeout(30).build();
+
+      const shSim = await server.simulateTransaction(shTx);
+      if (shSim.result?.retval) {
+        myShares = BigInt(SDK.scValToNative(shSim.result.retval));
+      }
+      document.getElementById('my-shares').textContent = fmt6(myShares);
+      document.getElementById('withdraw-max-hint').textContent = 'max: ' + fmt6(myShares);
+    }
+
+    updateWithdrawPreview();
+    updateSwapPreview();
+
+  } catch(e) {
+    console.error(e);
+    document.getElementById('reserve-usdc').innerHTML = '<span style="color:var(--red);font-size:12px;">error</span>';
+    document.getElementById('reserve-edm').innerHTML  = '<span style="color:var(--red);font-size:12px;">error</span>';
+    logEntry('error', 'loadPoolData: ' + e.message);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+function fmt6(bigintVal) {
+  const s = bigintVal.toString().padStart(DECIMALS + 1, '0');
+  const int = s.slice(0, s.length - DECIMALS);
+  const frac = s.slice(s.length - DECIMALS);
+  return int + '.' + frac;
+}
+
+function parseFloat6(str) {
+  const f = parseFloat(str);
+  if (isNaN(f) || f < 0) return 0n;
+  return BigInt(Math.round(f * 1_000_000));
+}
+
+function toFloat(bigintVal) {
+  return Number(bigintVal) / 1_000_000;
+}
+
+// Constant product swap estimate
+function estimateSwapCost(out, reserveSell, reserveBuy) {
+  if (reserveBuy <= out || out <= 0n) return null;
+  const n = reserveSell * out * 1000n;
+  const d = (reserveBuy - out) * 997n;
+  return (n / d) + 1n;
+}
+
+// ─────────────────────────────────────────────
+//  PREVIEW CALCULATORS
+// ─────────────────────────────────────────────
+function updateDepositPreview() {
+  const ua = parseFloat6(document.getElementById('dep-usdc').value);
+  const ub = parseFloat6(document.getElementById('dep-edm').value);
+  const box = document.getElementById('dep-preview');
+  if (ua === 0n && ub === 0n) { box.style.display = 'none'; return; }
+
+  box.style.display = 'block';
+  const ratio = (ua > 0n && ub > 0n) ? (toFloat(ua) / toFloat(ub)).toFixed(6) + ' USDC/EDMT' : '—';
+  document.getElementById('dep-ratio').textContent = ratio;
+
+  // Estimate shares
+  let estShares = '—';
+  if (ua > 0n && ub > 0n) {
+    if (reserveA === 0n && reserveB === 0n) {
+      // First deposit: sqrt(a*b)
+      const product = ua * ub;
+      // integer sqrt
+      let x = product;
+      let y = (x + 1n) / 2n;
+      while (y < x) { x = y; y = (x + product / x) / 2n; }
+      estShares = fmt6(x);
+    } else {
+      const shA = (ua * totalShares) / reserveA;
+      const shB = (ub * totalShares) / reserveB;
+      const sh = shA < shB ? shA : shB;
+      estShares = fmt6(sh);
+    }
+  }
+  document.getElementById('dep-est-shares').textContent = estShares;
+
+  // Auto-fill min with 1% slippage
+  if (ua > 0n) document.getElementById('dep-min-usdc').value = fmt6(ua * 99n / 100n);
+  if (ub > 0n) document.getElementById('dep-min-edm').value  = fmt6(ub * 99n / 100n);
+}
+
+function updateSwapSuffix() {
+  const buyA = document.getElementById('swap-buy').value === 'true';
+  // buying A (USDC) means paying B (EDM)
+  document.getElementById('swap-pay-suffix').textContent = buyA ? 'EDMT' : 'USDC';
+  document.getElementById('swap-pay-suffix').className = 'suffix ' + (buyA ? 'edm' : 'usdc');
+}
+
+function updateSwapPreview() {
+  const buyA = document.getElementById('swap-buy').value === 'true';
+  const out = parseFloat6(document.getElementById('swap-out').value);
+  const box = document.getElementById('swap-preview');
+
+  if (out === 0n || reserveA === 0n) { box.style.display = 'none'; return; }
+
+  const [reserveSell, reserveBuy] = buyA
+    ? [reserveB, reserveA]
+    : [reserveA, reserveB];
+
+  const cost = estimateSwapCost(out, reserveSell, reserveBuy);
+  if (!cost) { box.style.display = 'none'; return; }
+
+  box.style.display = 'block';
+  const payTok  = buyA ? 'EDMT' : 'USDC';
+  const recvTok = buyA ? 'USDC' : 'EDMT';
+
+  document.getElementById('sw-est-cost').textContent = fmt6(cost) + ' ' + payTok;
+
+  const impact = reserveBuy > 0n
+    ? (toFloat(out) / toFloat(reserveBuy) * 100).toFixed(2) + '%'
+    : '—';
+  document.getElementById('sw-impact').textContent = impact;
+
+  const effPrice = toFloat(out) > 0
+    ? (toFloat(cost) / toFloat(out)).toFixed(6) + ' ' + payTok + '/' + recvTok
+    : '—';
+  document.getElementById('sw-eff-price').textContent = effPrice;
+
+  // Suggest in_max with 1% slippage
+  document.getElementById('swap-in-max').value = fmt6(cost * 101n / 100n);
+}
+
+function updateWithdrawPreview() {
+  const shares = parseFloat6(document.getElementById('wd-shares').value);
+  const box = document.getElementById('wd-preview');
+
+  if (shares === 0n || totalShares === 0n) { box.style.display = 'none'; return; }
+
+  box.style.display = 'block';
+
+  const outA = (reserveA * shares) / totalShares;
+  const outB = (reserveB * shares) / totalShares;
+  const pct  = (toFloat(shares) / toFloat(totalShares) * 100).toFixed(4) + '%';
+
+  document.getElementById('wd-est-usdc').textContent = fmt6(outA) + ' USDC';
+  document.getElementById('wd-est-edm').textContent  = fmt6(outB) + ' EDMT';
+  document.getElementById('wd-pct').textContent = pct;
+
+  document.getElementById('wd-min-usdc').value = fmt6(outA * 99n / 100n);
+  document.getElementById('wd-min-edm').value  = fmt6(outB * 99n / 100n);
+}
+
+function setWithdrawPct(pct) {
+  const amount = (myShares * BigInt(Math.round(pct * 1000))) / 1000n;
+  document.getElementById('wd-shares').value = fmt6(amount);
+  updateWithdrawPreview();
+}
+
+// ─────────────────────────────────────────────
+//  CONTRACT CALLS
+// ─────────────────────────────────────────────
+async function sendTransaction(tx) {
+  const SDK = getSDK();
+  const server = getRpcServer();
+  const api = await getFreighterAPI();
+
+  // Prepare (simulate + assemble)
+  const prepared = await server.prepareTransaction(tx);
+
+  // Sign with Freighter
+  const xdr = prepared.toXDR();
+  let signedXdr;
+  if (api.signTransaction) {
+    const res = await api.signTransaction(xdr, { networkPassphrase: NETWORK_PASSPHRASE });
+    signedXdr = res?.signedXDR ?? res?.signedTxXdr ?? res;
+  } else {
+    throw new Error('signTransaction not available in Freighter API');
+  }
+
+  if (!signedXdr) throw new Error('Freighter did not return signed XDR');
+
+  const signedTx = SDK.TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+  const sendRes  = await server.sendTransaction(signedTx);
+
+  if (sendRes.status === 'ERROR') {
+    throw new Error('Transaction failed: ' + JSON.stringify(sendRes.errorResult ?? sendRes));
+  }
+
+  logEntry('pending', `⟳ Submitted: ${sendRes.hash}`);
+
+  // Poll for confirmation
+  let pollRes;
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 2000));
+    pollRes = await server.getTransaction(sendRes.hash);
+    if (pollRes.status !== 'NOT_FOUND') break;
+  }
+
+  if (pollRes?.status === 'SUCCESS') {
+    return { hash: sendRes.hash, result: pollRes };
+  } else {
+    throw new Error('Transaction failed or timed out. Status: ' + pollRes?.status);
+  }
+}
+
+async function buildTx(operations) {
+  const SDK = getSDK();
+  const server = getRpcServer();
+  const account = await server.getAccount(connectedPK);
+  return new SDK.TransactionBuilder(account, {
+    fee: '1000000',
+    networkPassphrase: NETWORK_PASSPHRASE,
+  }).addOperation(...operations).setTimeout(30).build();
+}
+
+// ─────────────────────────────────────────────
+//  DEPOSIT
+// ─────────────────────────────────────────────
+async function doDeposit() {
+  if (!connectedPK) return;
+  const btn = document.getElementById('dep-btn');
+  try {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Processing…';
+
+    const desiredA = parseFloat6(document.getElementById('dep-usdc').value);
+    const minA     = parseFloat6(document.getElementById('dep-min-usdc').value);
+    const desiredB = parseFloat6(document.getElementById('dep-edm').value);
+    const minB     = parseFloat6(document.getElementById('dep-min-edm').value);
+
+    if (desiredA === 0n || desiredB === 0n) throw new Error('Enter amounts > 0');
+
+    const SDK = getSDK();
+    const contract = new SDK.Contract(CONTRACT_ID);
+
+    const op = contract.call(
+      'deposit',
+      addrToScVal(connectedPK),
+      i128ToScVal(desiredA),
+      i128ToScVal(minA),
+      i128ToScVal(desiredB),
+      i128ToScVal(minB),
+    );
+
+    const tx = await buildTx([op]);
+    const { hash } = await sendTransaction(tx);
+
+    logEntry('success', `✓ Deposit confirmed! Hash: ${hash} · `
+      + `<a href="https://stellar.expert/explorer/testnet/tx/${hash}" target="_blank">View on Explorer</a>`);
+
+    await loadPoolData();
+  } catch(e) {
+    logEntry('error', '✗ Deposit failed: ' + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Deposit Liquidity';
+  }
+}
+
+// ─────────────────────────────────────────────
+//  SWAP
+// ─────────────────────────────────────────────
+async function doSwap() {
+  if (!connectedPK) return;
+  const btn = document.getElementById('swap-btn');
+  try {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Processing…';
+
+    const buyA  = document.getElementById('swap-buy').value === 'true';
+    const out   = parseFloat6(document.getElementById('swap-out').value);
+    const inMax = parseFloat6(document.getElementById('swap-in-max').value);
+
+    if (out === 0n)   throw new Error('Enter output amount > 0');
+    if (inMax === 0n) throw new Error('Enter max input amount > 0');
+
+    const SDK = getSDK();
+    const contract = new SDK.Contract(CONTRACT_ID);
+
+    const op = contract.call(
+      'swap',
+      addrToScVal(connectedPK),
+      boolToScVal(buyA),
+      i128ToScVal(out),
+      i128ToScVal(inMax),
+    );
+
+    const tx = await buildTx([op]);
+    const { hash } = await sendTransaction(tx);
+
+    const recvTok = buyA ? 'USDC' : 'EDMT';
+    logEntry('success', `✓ Swapped ${fmt6(out)} ${recvTok}! Hash: ${hash} · `
+      + `<a href="https://stellar.expert/explorer/testnet/tx/${hash}" target="_blank">Explorer</a>`);
+
+    await loadPoolData();
+  } catch(e) {
+    logEntry('error', '✗ Swap failed: ' + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Execute Swap';
+  }
+}
+
+// ─────────────────────────────────────────────
+//  WITHDRAW
+// ─────────────────────────────────────────────
+async function doWithdraw() {
+  if (!connectedPK) return;
+  const btn = document.getElementById('wd-btn');
+  try {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Processing…';
+
+    const shareAmount = parseFloat6(document.getElementById('wd-shares').value);
+    const minA        = parseFloat6(document.getElementById('wd-min-usdc').value);
+    const minB        = parseFloat6(document.getElementById('wd-min-edm').value);
+
+    if (shareAmount === 0n) throw new Error('Enter shares amount > 0');
+    if (shareAmount > myShares) throw new Error('Insufficient shares');
+
+    const SDK = getSDK();
+    const contract = new SDK.Contract(CONTRACT_ID);
+
+    const op = contract.call(
+      'withdraw',
+      addrToScVal(connectedPK),
+      i128ToScVal(shareAmount),
+      i128ToScVal(minA),
+      i128ToScVal(minB),
+    );
+
+    const tx = await buildTx([op]);
+    const { hash } = await sendTransaction(tx);
+
+    logEntry('success', `✓ Withdrew ${fmt6(shareAmount)} shares! Hash: ${hash} · `
+      + `<a href="https://stellar.expert/explorer/testnet/tx/${hash}" target="_blank">Explorer</a>`);
+
+    await loadPoolData();
+  } catch(e) {
+    logEntry('error', '✗ Withdraw failed: ' + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Withdraw Liquidity';
+  }
+}
+
+// ─────────────────────────────────────────────
+//  UI HELPERS
+// ─────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function logEntry(type, msg) {
+  const log = document.getElementById('tx-log');
+  log.classList.add('show');
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + type;
+  el.innerHTML = '<span style="opacity:.5;">' + new Date().toLocaleTimeString() + '</span>  ' + msg;
+  document.getElementById('log-entries').prepend(el);
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  // Load pool data without wallet (using first wallet as dummy)
+  try {
+    await loadPoolData();
+  } catch(e) {
+    console.warn('Initial load failed:', e.message);
+  }
+  updateSwapSuffix();
+});
+</script>
 </body>
 </html>
