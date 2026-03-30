@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LIQD — EDM/USDC Pool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo"><div class="dot"></div>LIQD</div>
+  <div class="hr">
+    <div class="bdg bdg-f">fee 0.3%</div>
+    <div class="bdg bdg-n">TESTNET</div>
+    <button class="btn btn-p" id="connectBtn">Connect LOBSTR</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- NOTICE -->
+  <div class="notice" id="lobstrNotice">
+    ⚠ Требуется <a href="https://lobstr.co/signer-extension/" target="_blank">LOBSTR Signer Extension</a>.
+    Установи расширение → привяжи мобильное приложение → нажми Connect.
+  </div>
+
+  <!-- WALLET BAR -->
+  <div class="wbar" id="walletBar">
+    <div class="wbar-left">
+      <div class="wbar-label">Активный кошелёк</div>
+      <div class="wpills">
+        <div class="wpill on" id="pill0" data-idx="0">
+          <span class="wn">Ходжахов Эмиль</span>
+          <span class="wa">GDL3…BGYKK</span>
+        </div>
+        <div class="wpill" id="pill1" data-idx="1">
+          <span class="wn">Шиндарев Михаил</span>
+          <span class="wa">GBVQ…BNVY</span>
+        </div>
+      </div>
+    </div>
+    <div class="wr">
+      <div class="waddr" id="waddr"></div>
+      <button class="btn btn-g" id="refreshBtn">↻ Обновить</button>
+      <button class="btn btn-d" id="disconnectBtn">Выход</button>
+    </div>
+  </div>
+
+  <!-- TOKEN CARDS -->
+  <div class="trow">
+    <div class="tc">
+      <div class="tlbl">Token A · Pool</div>
+      <div class="tsym a">USDC</div>
+      <div class="trole">USD Coin (testnet)</div>
+      <div class="tid">CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA</div>
+    </div>
+    <div class="tc">
+      <div class="tlbl">Token B · Pool</div>
+      <div class="tsym b">EDMT</div>
+      <div class="trole">EDM Token (твой)</div>
+      <div class="tid">CCECJKPMU2DCVVNIUWVYYS4F3WETD7B6ABTJG7OVYEYEOJ4JI7KZ7FPZ</div>
+    </div>
+    <div class="tc">
+      <div class="tlbl">AMM Contract</div>
+      <div class="tsym c" style="font-size:14px;margin-top:2px">LiqPool</div>
+      <div class="trole">Constant Product x·y=k</div>
+      <div class="tid">CDGGKE6AXV6BUGN5HSQKTUDVM6MMEHJSPGUYFL6VOVI6J54YDON6ESYU</div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="srow">
+    <div class="sc">
+      <div class="slbl">Reserve A (USDC)</div>
+      <div class="sval a" id="sA">—</div>
+      <div class="ssub" id="sAsub"></div>
+    </div>
+    <div class="sc">
+      <div class="slbl">Reserve B (EDMT)</div>
+      <div class="sval b" id="sB">—</div>
+      <div class="ssub" id="sBsub"></div>
+    </div>
+    <div class="sc">
+      <div class="slbl">Your LP Shares</div>
+      <div class="sval s" id="sS">—</div>
+      <div class="ssub" id="sSsub"></div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab on" data-panel="swap">Swap</button>
+    <button class="tab" data-panel="dep">Deposit</button>
+    <button class="tab" data-panel="wd">Withdraw</button>
+    <button class="tab" data-panel="info">Info</button>
+  </div>
+
+  <!-- ═══ SWAP ═══ -->
+  <div class="panel on" id="panel-swap">
+    <div class="card">
+      <div class="ctitle">Swap · 0.3% fee</div>
+      <div class="fg">
+        <label>Направление</label>
+        <select id="swapDir">
+          <option value="BtoA">EDMT → USDC &nbsp;(buy_a = true)</option>
+          <option value="AtoB">USDC → EDMT &nbsp;(buy_a = false)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Получаю (out) <span class="tb tba" id="outBadge">USDC</span></label>
+        <div class="iw">
+          <input type="number" id="swapOut" placeholder="0.000000" min="0" step="0.000001">
+          <span class="itag" id="outTag">USDC</span>
+        </div>
+      </div>
+      <div class="sarr">⇅</div>
+      <div class="fg">
+        <label>Плачу максимум (in_max) <span class="tb tbb" id="inBadge">EDMT</span></label>
+        <div class="iw">
+          <input type="number" id="swapInMax" placeholder="0.000000" min="0" step="0.000001">
+          <span class="itag" id="inTag">EDMT</span>
+        </div>
+      </div>
+      <div class="est on" id="swapEst">
+        <div class="er"><span class="ek">Estimated sell</span><span class="ev" id="estSell">—</span></div>
+        <div class="er"><span class="ek">Effective price</span><span class="ev" id="estPrice">—</span></div>
+        <div class="er"><span class="ek">Price impact</span><span class="ev" id="estImpact">—</span></div>
+        <div class="er"><span class="ek">Formula</span><span class="ev" style="color:var(--txt3)">sell = ⌊(R_sell·out·1000) / ((R_buy−out)·997)⌋ + 1</span></div>
+      </div>
+      <div class="fg">
+        <label>Получатель (to)</label>
+        <input type="text" id="swapTo" placeholder="G…">
+      </div>
+      <button class="btn btn-p btn-w" id="swapBtn">Execute Swap</button>
+      <div class="res info on" id="swapRes">Выбери направление и введи сумму — появится расчёт.</div>
+    </div>
+  </div>
+
+  <!-- ═══ DEPOSIT ═══ -->
+  <div class="panel" id="panel-dep">
+    <div class="card">
+      <div class="ctitle">Add Liquidity</div>
+      <div class="fg">
+        <label>Получатель LP (to)</label>
+        <input type="text" id="depTo" placeholder="G…">
+      </div>
+      <div class="two">
+        <div class="fg">
+          <label>Desired A <span class="tb tba">USDC</span></label>
+          <div class="iw"><input type="number" id="depDA" placeholder="10.000000" min="0" step="0.000001"><span class="itag">USDC</span></div>
+        </div>
+        <div class="fg">
+          <label>Min A <span class="tb tba">USDC</span></label>
+          <div class="iw"><input type="number" id="depMinA" placeholder="9.500000" min="0" step="0.000001"><span class="itag">USDC</span></div>
+        </div>
+      </div>
+      <div class="two">
+        <div class="fg">
+          <label>Desired B <span class="tb tbb">EDMT</span></label>
+          <div class="iw"><input type="number" id="depDB" placeholder="10.000000" min="0" step="0.000001"><span class="itag">EDMT</span></div>
+        </div>
+        <div class="fg">
+          <label>Min B <span class="tb tbb">EDMT</span></label>
+          <div class="iw"><input type="number" id="depMinB" placeholder="9.500000" min="0" step="0.000001"><span class="itag">EDMT</span></div>
+        </div>
+      </div>
+      <div class="est" id="depEst">
+        <div class="er"><span class="ek">Actual A deposit</span><span class="ev a" id="dEstA">—</span></div>
+        <div class="er"><span class="ek">Actual B deposit</span><span class="ev b" id="dEstB">—</span></div>
+        <div class="er"><span class="ek">Pool price</span><span class="ev" id="dEstR">—</span></div>
+      </div>
+      <button class="btn btn-p btn-w" id="depBtn">Deposit Liquidity</button>
+      <div class="res" id="depRes"></div>
+    </div>
+  </div>
+
+  <!-- ═══ WITHDRAW ═══ -->
+  <div class="panel" id="panel-wd">
+    <div class="card">
+      <div class="ctitle">Remove Liquidity</div>
+      <div class="fg">
+        <label>Получатель (to)</label>
+        <input type="text" id="wdTo" placeholder="G…">
+      </div>
+      <div class="fg">
+        <label>LP Shares to burn</label>
+        <div class="iw"><input type="number" id="wdShare" placeholder="0.000000" min="0" step="0.000001"><span class="itag">shares</span></div>
+      </div>
+      <div class="est" id="wdEst">
+        <div class="er"><span class="ek">Est. USDC out</span><span class="ev a" id="wEstA">—</span></div>
+        <div class="er"><span class="ek">Est. EDMT out</span><span class="ev b" id="wEstB">—</span></div>
+        <div class="er"><span class="ek">Your pool share</span><span class="ev" id="wEstP">—</span></div>
+      </div>
+      <div class="two">
+        <div class="fg">
+          <label>Min A out <span class="tb tba">USDC</span></label>
+          <input type="number" id="wdMinA" placeholder="0.000000" min="0" step="0.000001">
+        </div>
+        <div class="fg">
+          <label>Min B out <span class="tb tbb">EDMT</span></label>
+          <input type="number" id="wdMinB" placeholder="0.000000" min="0" step="0.000001">
+        </div>
+      </div>
+      <button class="btn btn-p btn-w" id="wdBtn">Withdraw</button>
+      <div class="res" id="wdRes"></div>
+    </div>
+  </div>
+
+  <!-- ═══ INFO ═══ -->
+  <div class="panel" id="panel-info">
+    <div class="card">
+      <div class="ctitle">Contract Details</div>
+      <div class="irow"><span class="ik">AMM type</span><span class="iv">Constant Product (x·y=k)</span></div>
+      <div class="irow"><span class="ik">Swap fee</span><span class="iv">0.3% — коэффициент 997/1000</span></div>
+      <div class="irow"><span class="ik">Token A</span><span class="iv">USDC · CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA</span></div>
+      <div class="irow"><span class="ik">Token B</span><span class="iv">EDMT · CCECJKPMU2DCVVNIUWVYYS4F3WETD7B6ABTJG7OVYEYEOJ4JI7KZ7FPZ</span></div>
+      <div class="irow"><span class="ik">Contract</span><span class="iv">CDGGKE6AXV6BUGN5HSQKTUDVM6MMEHJSPGUYFL6VOVI6J54YDON6ESYU</span></div>
+      <div class="irow"><span class="ik">Network</span><span class="iv">Testnet · soroban-testnet.stellar.org</span></div>
+      <div class="irow"><span class="ik">Decimals</span><span class="iv">6 (оба токена)</span></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Check Shares</div>
+      <div class="fg">
+        <label>Адрес</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="infoUser" placeholder="G…" style="flex:1">
+          <button class="btn btn-g" id="checkSharesBtn">Query</button>
+        </div>
+      </div>
+      <div class="res info on" id="infoRes">Введи адрес и нажми Query.</div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Swap Formula (из pool.rs)</div>
+      <div class="formula">
+        <div class="fc">// buy_a=true  → платишь EDMT, получаешь USDC</div>
+        <div class="fc">// buy_a=false → платишь USDC, получаешь EDMT</div>
+        <div style="margin-top:6px">n = reserve_sell × out × 1000</div>
+        <div>d = (reserve_buy − out) × 997</div>
+        <div class="fh">sell_amount = ⌊n / d⌋ + 1</div>
+        <div class="fc" style="margin-top:8px">// invariant check: new_k ≥ old_k</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Wallets</div>
+      <div class="irow"><span class="ik">Ходжахов Эмиль</span><span class="iv">GDL3XDTLQWUBTLWGWFTTQFRQMBBV4NO2FI2FSYX7HWKYOHTSYK5BGYKK</span></div>
+      <div class="irow"><span class="ik">Шиндарев Михаил</span><span class="iv">GBVQMFXXNOZFBARCPUEIJF5UFDW4EIBMWYBUJ7INU6B23NSUBUEXBNVY</span></div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
