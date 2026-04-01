@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@stellar/stellar-sdk/dist/stellar-sdk.min.js"></script>
-<!-- Freighter убран — подписываем через keypair -->
 <style>
 :root {
   --bg:       #070709;
@@ -63,7 +62,6 @@ header {
   border-radius: 3px; text-transform: uppercase;
 }
 
-/* ── WALLET BAR (заменили кнопку Freighter на поле SK) ── */
 .wallet-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 #wallet-info { font-family: var(--mono); font-size: 11px; color: var(--muted); display: none; }
@@ -71,15 +69,15 @@ header {
 #wallet-info .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--edm); box-shadow: 0 0 6px var(--edm); flex-shrink: 0; }
 #wallet-name { color: var(--edm); font-weight: 700; }
 
-#sk-form { display: flex; gap: 8px; align-items: center; }
-#sk-input {
+#pk-form { display: flex; gap: 8px; align-items: center; }
+#pk-input {
   font-family: var(--mono); font-size: 12px; letter-spacing: .03em;
   background: var(--bg2); border: 1px solid var(--border2);
   border-radius: 5px; padding: 8px 12px; color: var(--white);
-  width: 230px; outline: none; transition: border-color .15s;
+  width: 260px; outline: none; transition: border-color .15s;
 }
-#sk-input:focus { border-color: var(--edm); }
-#sk-input::placeholder { color: var(--muted); letter-spacing: 0; }
+#pk-input:focus { border-color: var(--edm); }
+#pk-input::placeholder { color: var(--muted); letter-spacing: 0; }
 
 .btn {
   font-family: var(--ui); font-size: 13px; font-weight: 600;
@@ -94,6 +92,8 @@ header {
 .btn-danger { background: transparent; border: 1px solid rgba(255,74,110,.4); color: var(--red); }
 .btn-danger:not(:disabled):hover { background: rgba(255,74,110,.1); }
 .btn-full { width: 100%; padding: 13px; font-size: 14px; }
+.btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--muted); font-size: 11px; padding: 5px 10px; }
+.btn-ghost:hover { border-color: var(--red); color: var(--red); }
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
@@ -130,13 +130,13 @@ header {
 .suffix.edm  { color: var(--edm); }
 .suffix.usdc { color: var(--usdc-lt); }
 .suffix.sh   { color: var(--orange); }
-input[type="number"], input[type="text"], select {
+input[type="number"], input[type="text"], input[type="password"], select {
   width: 100%; background: var(--bg2); border: 1px solid var(--border);
   border-radius: 6px; padding: 11px 14px; font-family: var(--mono);
   font-size: 14px; color: var(--white); outline: none;
   transition: border-color .18s; appearance: none;
 }
-input[type="number"]:focus, input[type="text"]:focus, select:focus { border-color: var(--edm); }
+input[type="number"]:focus, input[type="text"]:focus, input[type="password"]:focus, select:focus { border-color: var(--edm); }
 .input-wrap input { padding-right: 56px; }
 select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236a6a88' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
@@ -158,6 +158,61 @@ select option { background: #18181e; }
   background: rgba(255,124,56,.07); border: 1px solid rgba(255,124,56,.25);
   border-radius: 6px; padding: 9px 14px; font-size: 11px; color: var(--orange);
   margin-bottom: 16px; line-height: 1.5;
+}
+
+/* ── SK MODAL ── */
+.modal-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(7,7,9,.85);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.modal-backdrop.open { display: flex; }
+
+.modal {
+  background: var(--bg1);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 28px;
+  width: 100%;
+  max-width: 420px;
+  margin: 16px;
+  box-shadow: 0 0 60px rgba(0,0,0,.6), 0 0 0 1px rgba(124,252,110,.08);
+  animation: modalIn .2s ease both;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(12px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-title {
+  font-size: 13px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--white); margin-bottom: 6px;
+}
+.modal-desc {
+  font-size: 11px; color: var(--muted); line-height: 1.6; margin-bottom: 20px;
+}
+.modal-desc strong { color: var(--orange); }
+.modal-action { display: flex; gap: 8px; margin-top: 16px; }
+.modal-action .btn { flex: 1; }
+
+.sk-security-note {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.5;
+}
+.sk-security-note::before {
+  content: '🔒';
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 #tx-log { margin-top: 28px; display: none; }
@@ -199,22 +254,21 @@ select option { background: #18181e; }
       <div id="wallet-info">
         <div class="dot"></div>
         <span id="wallet-name">—</span>
+        <button class="btn btn-ghost" onclick="disconnectWallet()">✕</button>
       </div>
-      <!-- Вместо кнопки Freighter — поле для secret key -->
-      <div id="sk-form">
-        <input type="password" id="sk-input" placeholder="Secret Key  S…" maxlength="56">
-        <button class="btn btn-primary" onclick="connectWithSK()">Connect</button>
+      <div id="pk-form">
+        <input type="text" id="pk-input" placeholder="Public Key  G…" maxlength="56">
+        <button class="btn btn-primary" onclick="connectWithPK()">Connect</button>
       </div>
       <button class="btn btn-secondary" onclick="loadPoolData()" title="Refresh">⟳</button>
     </div>
   </header>
 
   <div class="testnet-warn">
-    ⚠ Testnet only. Secret key используется только локально для подписи транзакций — никуда не отправляется.
+    ⚠ Testnet. Введите ваш Public Key (G…) для подключения. Secret Key запрашивается только при отправке транзакции и не сохраняется.
   </div>
 
   <div class="grid-2" style="margin-bottom: 16px;">
-
     <div class="card">
       <div class="card-title">Pool Reserves</div>
       <div class="reserves-row">
@@ -266,7 +320,6 @@ select option { background: #18181e; }
         </div>
       </div>
     </div>
-
   </div>
 
   <div class="card" style="animation-delay:.15s;">
@@ -394,9 +447,31 @@ select option { background: #18181e; }
   </div>
 
 </div>
+
+<!-- ── SK MODAL ── -->
+<div class="modal-backdrop" id="sk-modal" onclick="handleModalBackdropClick(event)">
+  <div class="modal">
+    <div class="modal-title">Подписать транзакцию</div>
+    <div class="modal-desc" id="modal-action-desc">
+      Введите Secret Key для подписи. Он используется только локально и <strong>не передаётся на сервер</strong>.
+    </div>
+    <div class="field">
+      <div class="field-label">Secret Key</div>
+      <input type="password" id="modal-sk-input" placeholder="S…" maxlength="56" autocomplete="off">
+    </div>
+    <div class="sk-security-note">
+      SK используется только один раз для подписи этой транзакции и сразу удаляется из памяти.
+    </div>
+    <div class="modal-action">
+      <button class="btn btn-secondary" onclick="closeSkModal()">Отмена</button>
+      <button class="btn btn-primary" id="modal-sign-btn" onclick="confirmSign()">Подписать и отправить</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ─────────────────────────────────────────────
-//  CONSTANTS  (не изменились)
+//  CONSTANTS
 // ─────────────────────────────────────────────
 const NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
 const RPC_URL            = 'https://soroban-testnet.stellar.org';
@@ -414,15 +489,18 @@ const WALLETS = [
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
-let keypair     = null;   // ← НОВОЕ: вместо Freighter
-let connectedPK = null;
-let reserveA    = 0n;
-let reserveB    = 0n;
-let totalShares = 0n;
-let myShares    = 0n;
+let connectedPK  = null;
+let reserveA     = 0n;
+let reserveB     = 0n;
+let totalShares  = 0n;
+let myShares     = 0n;
+
+// Pending TX sign resolve
+let _signResolve = null;
+let _signReject  = null;
 
 // ─────────────────────────────────────────────
-//  SDK HELPERS  (не изменились — взяты из рабочего кода)
+//  SDK HELPERS
 // ─────────────────────────────────────────────
 function getSDK() {
   if (typeof StellarSdk !== 'undefined') return StellarSdk;
@@ -453,46 +531,71 @@ function boolToScVal(b) {
 }
 
 // ─────────────────────────────────────────────
-//  WALLET  (НОВОЕ — вместо Freighter)
+//  WALLET  — подключение по PK
 // ─────────────────────────────────────────────
-async function connectWithSK() {
-  const sk = document.getElementById('sk-input').value.trim();
+async function connectWithPK() {
+  const pk = document.getElementById('pk-input').value.trim();
 
-  if (!sk.startsWith('S') || sk.length !== 56) {
-    logEntry('error', '✗ Неверный secret key (должен начинаться с S, 56 символов)');
+  if (!pk.startsWith('G') || pk.length !== 56) {
+    logEntry('error', '✗ Неверный Public Key (должен начинаться с G, 56 символов)');
     return;
   }
 
+  // Валидируем через SDK
   try {
     const SDK = getSDK();
-    const kp  = SDK.Keypair.fromSecret(sk);
-    keypair     = kp;
-    connectedPK = kp.publicKey();
-
-    // Очищаем поле сразу
-    document.getElementById('sk-input').value = '';
-
-    const known = WALLETS.find(w => w.pk === connectedPK);
-    const name  = known ? known.name : connectedPK.slice(0,6) + '…' + connectedPK.slice(-4);
-
-    document.getElementById('wallet-info').classList.add('show');
-    document.getElementById('wallet-name').textContent = name + ' · ' + connectedPK.slice(0,4) + '…' + connectedPK.slice(-4);
-    document.getElementById('sk-form').style.display = 'none';
-
-    WALLETS.forEach((w, i) => {
-      if (w.pk === connectedPK) {
-        const row = document.getElementById('wrow-' + i);
-        row.classList.add('me');
-        row.innerHTML += '<span class="wallet-tag">You</span>';
-      }
-    });
-
-    enableButtons();
-    logEntry('success', '✓ Подключён: ' + name);
-    await loadPoolData();
+    new SDK.Address(pk); // бросит если невалидный
   } catch(e) {
-    logEntry('error', '✗ ' + e.message);
+    logEntry('error', '✗ Невалидный Public Key: ' + e.message);
+    return;
   }
+
+  connectedPK = pk;
+  document.getElementById('pk-input').value = '';
+
+  const known = WALLETS.find(w => w.pk === connectedPK);
+  const name  = known ? known.name : connectedPK.slice(0,6) + '…' + connectedPK.slice(-4);
+
+  document.getElementById('wallet-info').classList.add('show');
+  document.getElementById('wallet-name').textContent = name + ' · ' + connectedPK.slice(0,4) + '…' + connectedPK.slice(-4);
+  document.getElementById('pk-form').style.display = 'none';
+
+  WALLETS.forEach((w, i) => {
+    if (w.pk === connectedPK) {
+      const row = document.getElementById('wrow-' + i);
+      row.classList.add('me');
+      if (!row.querySelector('.wallet-tag')) {
+        const tag = document.createElement('span');
+        tag.className = 'wallet-tag';
+        tag.textContent = 'You';
+        row.appendChild(tag);
+      }
+    }
+  });
+
+  enableButtons();
+  logEntry('success', '✓ Подключён: ' + name);
+  await loadPoolData();
+}
+
+function disconnectWallet() {
+  connectedPK = null;
+  document.getElementById('wallet-info').classList.remove('show');
+  document.getElementById('pk-form').style.display = 'flex';
+  document.getElementById('wallet-name').textContent = '—';
+  WALLETS.forEach((_, i) => {
+    const row = document.getElementById('wrow-' + i);
+    row.classList.remove('me');
+    const tag = row.querySelector('.wallet-tag');
+    if (tag) tag.remove();
+  });
+  ['dep-btn','swap-btn','wd-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    btn.disabled = true;
+    btn.textContent = 'Connect wallet first';
+  });
+  document.getElementById('my-shares').textContent = '—';
+  document.getElementById('withdraw-max-hint').textContent = '';
 }
 
 function enableButtons() {
@@ -506,7 +609,50 @@ function enableButtons() {
 }
 
 // ─────────────────────────────────────────────
-//  POOL DATA  (не изменилась — взята из рабочего кода)
+//  SK MODAL  — запрашивает SK только при подписи
+// ─────────────────────────────────────────────
+function openSkModal(actionDesc) {
+  document.getElementById('modal-action-desc').innerHTML =
+    actionDesc + '<br><br>Введите Secret Key для подписи. Он используется только локально и <strong>не передаётся на сервер</strong>.';
+  document.getElementById('modal-sk-input').value = '';
+  document.getElementById('sk-modal').classList.add('open');
+  setTimeout(() => document.getElementById('modal-sk-input').focus(), 100);
+
+  return new Promise((resolve, reject) => {
+    _signResolve = resolve;
+    _signReject  = reject;
+  });
+}
+
+function closeSkModal() {
+  document.getElementById('sk-modal').classList.remove('open');
+  document.getElementById('modal-sk-input').value = '';
+  if (_signReject) { _signReject(new Error('Отменено пользователем')); }
+  _signResolve = null;
+  _signReject  = null;
+}
+
+function handleModalBackdropClick(e) {
+  if (e.target === document.getElementById('sk-modal')) closeSkModal();
+}
+
+function confirmSign() {
+  const sk = document.getElementById('modal-sk-input').value.trim();
+  if (!sk.startsWith('S') || sk.length !== 56) {
+    document.getElementById('modal-sk-input').style.borderColor = 'var(--red)';
+    setTimeout(() => document.getElementById('modal-sk-input').style.borderColor = '', 1000);
+    return;
+  }
+  document.getElementById('sk-modal').classList.remove('open');
+  if (_signResolve) _signResolve(sk);
+  _signResolve = null;
+  _signReject  = null;
+  // Очищаем после небольшой задержки (чтобы промис успел разрешиться)
+  setTimeout(() => { document.getElementById('modal-sk-input').value = ''; }, 100);
+}
+
+// ─────────────────────────────────────────────
+//  POOL DATA
 // ─────────────────────────────────────────────
 async function loadPoolData() {
   try {
@@ -520,7 +666,6 @@ async function loadPoolData() {
     const simAccountPK = connectedPK ?? WALLETS[0].pk;
     const account      = await server.getAccount(simAccountPK);
 
-    // get_rsrvs
     const rsvTx = new SDK.TransactionBuilder(account, {
       fee: '10000',
       networkPassphrase: NETWORK_PASSPHRASE,
@@ -538,7 +683,6 @@ async function loadPoolData() {
     document.getElementById('reserve-usdc').innerHTML = fmt6(reserveA) + '<span>USDC</span>';
     document.getElementById('reserve-edm').innerHTML  = fmt6(reserveB) + '<span>EDMT</span>';
 
-    // balance_shares
     if (connectedPK) {
       const account2 = await server.getAccount(connectedPK);
       const shTx = new SDK.TransactionBuilder(account2, {
@@ -568,7 +712,7 @@ async function loadPoolData() {
 }
 
 // ─────────────────────────────────────────────
-//  HELPERS  (не изменились)
+//  HELPERS
 // ─────────────────────────────────────────────
 function fmt6(bigintVal) {
   const s   = bigintVal.toString().padStart(DECIMALS + 1, '0');
@@ -593,7 +737,7 @@ function estimateSwapCost(out, reserveSell, reserveBuy) {
 }
 
 // ─────────────────────────────────────────────
-//  PREVIEW CALCULATORS  (не изменились)
+//  PREVIEW CALCULATORS
 // ─────────────────────────────────────────────
 function updateDepositPreview() {
   const ua  = parseFloat6(document.getElementById('dep-usdc').value);
@@ -665,18 +809,33 @@ function setWithdrawPct(pct) {
 }
 
 // ─────────────────────────────────────────────
-//  SEND TX  (НОВОЕ — вместо Freighter.signTransaction)
+//  SEND TX  — запрашивает SK через модал
 // ─────────────────────────────────────────────
-async function sendTransaction(tx) {
-  if (!keypair) throw new Error('Кошелёк не подключён');
+async function sendTransaction(tx, actionDesc) {
+  if (!connectedPK) throw new Error('Кошелёк не подключён');
   const SDK    = getSDK();
   const server = getRpcServer();
 
-  // prepareTransaction — добавляет footprint, soroban data и т.д.
-  const prepared = await server.prepareTransaction(tx);
+  // Запрашиваем SK через модал
+  const sk = await openSkModal(actionDesc);
 
-  // Подписываем keypair локально — точно как stellar CLI --source
+  // Проверяем что PK совпадает
+  let keypair;
+  try {
+    keypair = SDK.Keypair.fromSecret(sk);
+  } catch(e) {
+    throw new Error('Неверный Secret Key: ' + e.message);
+  }
+
+  if (keypair.publicKey() !== connectedPK) {
+    throw new Error('Secret Key не соответствует подключённому Public Key (' + connectedPK.slice(0,6) + '…)');
+  }
+
+  const prepared = await server.prepareTransaction(tx);
   prepared.sign(keypair);
+
+  // Очищаем keypair из памяти
+  keypair = null;
 
   const sendRes = await server.sendTransaction(prepared);
   if (sendRes.status === 'ERROR') {
@@ -685,7 +844,6 @@ async function sendTransaction(tx) {
 
   logEntry('pending', '⟳ Submitted: ' + sendRes.hash);
 
-  // Ждём подтверждения
   for (let i = 0; i < 30; i++) {
     await new Promise(r => setTimeout(r, 2000));
     const poll = await server.getTransaction(sendRes.hash);
@@ -706,26 +864,32 @@ async function buildTx(operations) {
 }
 
 // ─────────────────────────────────────────────
-//  DEPOSIT / SWAP / WITHDRAW  (не изменились)
+//  DEPOSIT / SWAP / WITHDRAW
 // ─────────────────────────────────────────────
 async function doDeposit() {
   if (!connectedPK) return;
   const btn = document.getElementById('dep-btn');
   try {
-    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Processing…';
     const desiredA = parseFloat6(document.getElementById('dep-usdc').value);
     const minA     = parseFloat6(document.getElementById('dep-min-usdc').value);
     const desiredB = parseFloat6(document.getElementById('dep-edm').value);
     const minB     = parseFloat6(document.getElementById('dep-min-edm').value);
     if (desiredA === 0n || desiredB === 0n) throw new Error('Enter amounts > 0');
+
     const SDK = getSDK();
     const contract = new SDK.Contract(CONTRACT_ID);
     const op = contract.call('deposit', addrToScVal(connectedPK), i128ToScVal(desiredA), i128ToScVal(minA), i128ToScVal(desiredB), i128ToScVal(minB));
     const tx = await buildTx([op]);
-    const { hash } = await sendTransaction(tx);
+
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Processing…';
+
+    const { hash } = await sendTransaction(tx, `Deposit ${fmt6(desiredA)} USDC + ${fmt6(desiredB)} EDMT в пул`);
     logEntry('success', `✓ Deposit! <a href="https://stellar.expert/explorer/testnet/tx/${hash}" target="_blank">${hash}</a>`);
     await loadPoolData();
-  } catch(e) { logEntry('error', '✗ Deposit: ' + e.message); console.error(e); }
+  } catch(e) {
+    if (e.message !== 'Отменено пользователем') logEntry('error', '✗ Deposit: ' + e.message);
+    console.error(e);
+  }
   finally { btn.disabled = false; btn.textContent = 'Deposit Liquidity'; }
 }
 
@@ -733,20 +897,26 @@ async function doSwap() {
   if (!connectedPK) return;
   const btn = document.getElementById('swap-btn');
   try {
-    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Processing…';
     const buyA  = document.getElementById('swap-buy').value === 'true';
     const out   = parseFloat6(document.getElementById('swap-out').value);
     const inMax = parseFloat6(document.getElementById('swap-in-max').value);
     if (out === 0n)   throw new Error('Enter output amount > 0');
     if (inMax === 0n) throw new Error('Enter max input amount > 0');
+
     const SDK = getSDK();
     const contract = new SDK.Contract(CONTRACT_ID);
     const op = contract.call('swap', addrToScVal(connectedPK), boolToScVal(buyA), i128ToScVal(out), i128ToScVal(inMax));
     const tx = await buildTx([op]);
-    const { hash } = await sendTransaction(tx);
+
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Processing…';
+
+    const { hash } = await sendTransaction(tx, `Swap — получить ${fmt6(out)} ${buyA ? 'USDC' : 'EDMT'}`);
     logEntry('success', `✓ Swap ${fmt6(out)} ${buyA ? 'USDC' : 'EDMT'}! <a href="https://stellar.expert/explorer/testnet/tx/${hash}" target="_blank">${hash}</a>`);
     await loadPoolData();
-  } catch(e) { logEntry('error', '✗ Swap: ' + e.message); console.error(e); }
+  } catch(e) {
+    if (e.message !== 'Отменено пользователем') logEntry('error', '✗ Swap: ' + e.message);
+    console.error(e);
+  }
   finally { btn.disabled = false; btn.textContent = 'Execute Swap'; }
 }
 
@@ -754,25 +924,31 @@ async function doWithdraw() {
   if (!connectedPK) return;
   const btn = document.getElementById('wd-btn');
   try {
-    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Processing…';
     const shareAmount = parseFloat6(document.getElementById('wd-shares').value);
     const minA        = parseFloat6(document.getElementById('wd-min-usdc').value);
     const minB        = parseFloat6(document.getElementById('wd-min-edm').value);
-    if (shareAmount === 0n)       throw new Error('Enter shares amount > 0');
-    if (shareAmount > myShares)   throw new Error('Insufficient shares');
+    if (shareAmount === 0n)     throw new Error('Enter shares amount > 0');
+    if (shareAmount > myShares) throw new Error('Insufficient shares');
+
     const SDK = getSDK();
     const contract = new SDK.Contract(CONTRACT_ID);
     const op = contract.call('withdraw', addrToScVal(connectedPK), i128ToScVal(shareAmount), i128ToScVal(minA), i128ToScVal(minB));
     const tx = await buildTx([op]);
-    const { hash } = await sendTransaction(tx);
+
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Processing…';
+
+    const { hash } = await sendTransaction(tx, `Withdraw ${fmt6(shareAmount)} LP shares из пула`);
     logEntry('success', `✓ Withdrew ${fmt6(shareAmount)} shares! <a href="https://stellar.expert/explorer/testnet/tx/${hash}" target="_blank">${hash}</a>`);
     await loadPoolData();
-  } catch(e) { logEntry('error', '✗ Withdraw: ' + e.message); console.error(e); }
+  } catch(e) {
+    if (e.message !== 'Отменено пользователем') logEntry('error', '✗ Withdraw: ' + e.message);
+    console.error(e);
+  }
   finally { btn.disabled = false; btn.textContent = 'Withdraw Liquidity'; }
 }
 
 // ─────────────────────────────────────────────
-//  UI HELPERS  (не изменились)
+//  UI HELPERS
 // ─────────────────────────────────────────────
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -796,8 +972,13 @@ function logEntry(type, msg) {
 window.addEventListener('load', async () => {
   try { await loadPoolData(); } catch(e) { console.warn('Initial load failed:', e.message); }
   updateSwapSuffix();
-  document.getElementById('sk-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') connectWithSK();
+
+  document.getElementById('pk-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') connectWithPK();
+  });
+  document.getElementById('modal-sk-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') confirmSign();
+    if (e.key === 'Escape') closeSkModal();
   });
 });
 </script>

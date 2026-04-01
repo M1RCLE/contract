@@ -1,5 +1,8 @@
 {
 	"dependencies": {
 		"liquidity_pool": "file:packages/liquidity_pool"
-	}
+	},
+	"scripts": {
+   		"build": "cd packages/liquidity_pool && npm install && npm run build"
+  	}
 }
